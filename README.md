@@ -1,8 +1,8 @@
-[![CI](/workflows/CI/badge.svg)](/actions?query=workflow%3ACI)
+[![CI](https://github.com/twlz0ne/whitespace4r.el/workflows/CI/badge.svg)](https://github.com/twlz0ne/whitespace4r.el/actions?query=workflow%3ACI)
 
 Minor mode to show whitespace for selected region.
 
-![](./screenshot.png) 
+![](./screenshot.png)
 
 ## Installation
 

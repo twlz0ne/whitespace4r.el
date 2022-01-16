@@ -36,6 +36,8 @@
 
 (require 'whitespace)
 
+(declare-function evil-visual-range "evil-states")
+
 (defvar-local whitespace4r--region-mark nil
   "Used to save the last selected region.")
 
@@ -160,20 +162,24 @@
   "Advice around `kill-new' (ORIG-FN) to remove text properties.
 
 See `kill-new' for arguments STRING and REPLACE."
-  (funcall orig-fn (if whitespace4r-mode
-                       (substring-no-properties string)
-                     string)
-           replace))
+  (funcall orig-fn (substring-no-properties string) replace))
 
 (defun whitespace4r--advice-primitive-undo (orig-fn n list)
   "Advice around `primitive-undo' (ORIG-FN) to remove text properties.
 
 See `primitive-undo' for arguments N and LIST."
-  (when whitespace4r-mode
-    (let ((s (caar (nthcdr n list))))
-      (when (stringp s)
-        (setf (caar (nthcdr n list))
-              (substring-no-properties s)))))
+  (let ((idxs nil))
+    (catch 'break
+      (dotimes (i (length list))
+        (when (and (consp (nth i list)) (stringp (car (nth i list))))
+          (push i idxs))
+        (unless (length< idxs n)
+          (throw 'break nil))))
+    (dolist (i idxs)
+      (let ((s (and (consp (nth i list)) (car (nth i list)))))
+        (when (stringp s)
+          (setf (caar (nthcdr i list))
+                (substring-no-properties s))))))
   (funcall orig-fn n list))
 
 ;;;###autoload

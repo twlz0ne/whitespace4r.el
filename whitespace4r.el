@@ -147,9 +147,12 @@ Each element has the following form:
         (font-lock-flush beg end)
         (font-lock-ensure beg end)
         (run-with-timer
-         0.1 nil `(lambda ()
-                    (with-current-buffer ,(current-buffer)
-                      (remove-text-properties ,beg ,end '(display nil)))))))))
+         0 nil (lambda (buffer beg end)
+                 (with-current-buffer buffer
+                   (let ((undo-list-backup buffer-undo-list))
+                     (remove-text-properties beg (min end (point-max)) '(display))
+                     (setq buffer-undo-list undo-list-backup))))
+         (current-buffer) beg end)))))
 
 (defun whitespace4r--show (regions)
   "Show whitespace in REGIONS."
@@ -193,29 +196,14 @@ Each element has the following form:
       (whitespace4r--hide (list last-region))))
   (whitespace4r--mark-region nil))
 
-(defun whitespace4r--advice-kill-new (orig-fn string &optional replace)
-  "Advice around `kill-new' (ORIG-FN) to remove text properties.
+(defun whitespace4r--after-change-function (beg end len)
+  "Remove text properties from BEG to END.
 
-See `kill-new' for arguments STRING and REPLACE."
-  (funcall orig-fn (substring-no-properties string) replace))
+LEN is zero for insertion (including undo, paste...), non-zero for deletion.
 
-(defun whitespace4r--advice-primitive-undo (orig-fn n list)
-  "Advice around `primitive-undo' (ORIG-FN) to remove text properties.
-
-See `primitive-undo' for arguments N and LIST."
-  (let ((idxs nil))
-    (catch 'break
-      (dotimes (i (length list))
-        (when (and (consp (nth i list)) (stringp (car (nth i list))))
-          (push i idxs))
-        (unless (length< idxs n)
-          (throw 'break nil))))
-    (dolist (i idxs)
-      (let ((s (and (consp (nth i list)) (car (nth i list)))))
-        (when (stringp s)
-          (setf (caar (nthcdr i list))
-                (substring-no-properties s))))))
-  (funcall orig-fn n list))
+This function must be called from `after-change-functions'."
+  (when (and (not (region-active-p)) (zerop len) (< beg end))
+    (whitespace4r--hide (list (cons beg end)))))
 
 ;;;###autoload
 (define-minor-mode whitespace4r-mode
@@ -228,14 +216,12 @@ See `primitive-undo' for arguments N and LIST."
    (whitespace4r-mode
     (add-hook 'activate-mark-hook #'whitespace4r--activate-mark-cb  100 t)
     (add-hook 'deactivate-mark-hook #'whitespace4r--deactivate-mark-cb 100 t)
-    (advice-add 'kill-new :around #'whitespace4r--advice-kill-new)
-    (advice-add 'primitive-undo :around #'whitespace4r--advice-primitive-undo)
+    (add-hook 'after-change-functions #'whitespace4r--after-change-function nil t)
     (whitespace4r--activate-mark-cb))
    (t
     (remove-hook 'activate-mark-hook #'whitespace4r--activate-mark-cb t)
     (remove-hook 'deactivate-mark-hook #'whitespace4r--deactivate-mark-cb t)
-    (advice-remove 'kill-new #'whitespace4r--advice-kill-new)
-    (advice-remove 'primitive-undo #'whitespace4r--advice-primitive-undo)
+    (remove-hook 'after-change-functions #'whitespace4r--after-change-function t)
     (whitespace4r--deactivate-mark-cb))))
 
 (provide 'whitespace4r)

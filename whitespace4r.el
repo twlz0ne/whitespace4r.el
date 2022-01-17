@@ -44,6 +44,29 @@
 (defvar-local whitespace4r-font-lock-keywords
     "Used to save the value ‘whitespacer-mode’ adds to ‘font-lock-keywords’.")
 
+(defcustom whitespace4r-display-mappings
+  '(
+    (space-mark      . [?·])
+    (hard-space-mark . [?¤])
+    (tab-mark        . [?\s ?»]))
+  "Specify an alist of mappings for displaying characters.
+
+Each element has the following form:
+
+   (KIND [CHAR1 ...])"
+  :type '(repeat
+          (cons :tag "Character Mapping"
+                (choice :tag "Char Kind"
+                        (const :tag "Tab" tab-mark)
+                        (const :tag "Space" space-mark)
+                        (const :tag "HardSpace" hard-space-mark))
+                (repeat :inline t :tag "Vector List"
+                                  (vector :tag ""
+                                          (repeat :inline t
+                                                  :tag "Vector Characters"
+                                                  (character :tag "Char"))))))
+  :group 'whitespace4r)
+
 (defun whitespace4r-font-lock-keywords ()
   "Return font lock keywords."
   `(
@@ -53,25 +76,37 @@
            (1 (put-text-property
                (match-beginning 1)
                (match-end 1)
-               'display (propertize "·" 'face whitespace-space))))
+               'display (propertize
+                         ,(char-to-string
+                           (aref (cdr (assq 'space-mark
+                                            whitespace4r-display-mappings)) 0))
+                         'face whitespace-space))))
           ;; Show HARD SPACEs.
           ("\\(\u00A0\\)"
            (1 (put-text-property
                (match-beginning 1)
                (match-end 1)
                'display
-               (propertize "¤" 'face whitespace-hspace))))))
+               (propertize ,(char-to-string
+                             (aref (cdr (assq 'hard-space-mark
+                                              whitespace4r-display-mappings)) 0))
+                           'face whitespace-hspace))))))
     ,@(when (memq 'tabs whitespace-active-style)
         ;; Show TABs.
         `(("\\(\t\\)"
-           (1 (let ((s (concat (make-string
-                                    (- (current-column)
-                                       (save-excursion
-                                         (goto-char (match-beginning 1))
-                                         (current-column))
-                                       1)
-                                    ?\s)
-                               "»")))
+           (1 (let* ((pole ,(aref (cdr (assq 'tab-mark
+                                             whitespace4r-display-mappings)) 0))
+                     (arrow ,(char-to-string
+                              (aref (cdr (assq 'tab-mark
+                                               whitespace4r-display-mappings)) 1)))
+                     (s (concat (make-string
+                                 (- (current-column)
+                                    (save-excursion
+                                      (goto-char (match-beginning 1))
+                                      (current-column))
+                                    1)
+                                 pole)
+                                arrow)))
                 (put-text-property
                  (match-beginning 1)
                  (match-end 1)

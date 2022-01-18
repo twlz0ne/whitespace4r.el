@@ -37,5 +37,8 @@ jobs:
       with:
         version: ${{matrix.emacs_version}}
 
+    - name: Check out the source code
+      uses: actions/checkout@v2
+
     - name: Run tests
       run: make

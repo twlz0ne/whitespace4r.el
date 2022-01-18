@@ -4,7 +4,7 @@
 
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
-;; Version: 0.1.0
+;; Version: 0.1.4
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
 ;; Keywords: tools
@@ -28,10 +28,6 @@
 
 ;; See README.md for more information.
 
-;;; Change Log:
-
-;;  0.1.0  2022/01/12  Initial version.
-
 ;;; Code:
 
 (require 'whitespace)
@@ -41,8 +37,23 @@
 (defvar-local whitespace4r--region-mark nil
   "Used to save the last selected region.")
 
-(defvar-local whitespace4r-font-lock-keywords
-    "Used to save the value ‘whitespacer-mode’ adds to ‘font-lock-keywords’.")
+(defvar-local whitespace4r-font-lock-keywords nil
+  "Used to save the value ‘whitespacer-mode’ adds to ‘font-lock-keywords’.")
+
+(defface whitespace4r-space
+  '((t (:inherit whitespace-space)))
+  "Face used to visualize SPACE."
+  :group 'whitespace4r)
+
+(defface whitespace4r-hspace
+  '((t (:inherit whitespace-hspace)))
+  "Face used to visualize HSPACE."
+  :group 'whitespace4r)
+
+(defface whitespace4r-tab
+  '((t (:inherit whitespace-tab)))
+  "Face used to visualize TAB."
+  :group 'whitespace4r)
 
 (defcustom whitespace4r-display-mappings
   '(
@@ -67,10 +78,15 @@ Each element has the following form:
                                                   (character :tag "Char"))))))
   :group 'whitespace4r)
 
+(defcustom whitespace4r-active-style '(spaces hspaces tabs)
+  "A list of active styles."
+  :type 'list
+  :group 'whitespace4r)
+
 (defun whitespace4r-font-lock-keywords ()
   "Return font lock keywords."
   `(
-    ,@(when (memq 'spaces whitespace-active-style)
+    ,@(when (memq 'spaces whitespace4r-active-style)
         ;; Show SPACEs.
         `(("\\(\s\\)"
            (1 (put-text-property
@@ -80,9 +96,10 @@ Each element has the following form:
                          ,(char-to-string
                            (aref (cdr (assq 'space-mark
                                             whitespace4r-display-mappings)) 0))
-                         'face whitespace-space))))
-          ;; Show HARD SPACEs.
-          ("\\(\u00A0\\)"
+                         'face 'whitespace4r-space))))))
+    ,@(when (memq 'hspaces whitespace4r-active-style)
+        ;; Show HARD SPACEs.
+        `(("\\(\u00A0\\)"
            (1 (put-text-property
                (match-beginning 1)
                (match-end 1)
@@ -90,8 +107,8 @@ Each element has the following form:
                (propertize ,(char-to-string
                              (aref (cdr (assq 'hard-space-mark
                                               whitespace4r-display-mappings)) 0))
-                           'face whitespace-hspace))))))
-    ,@(when (memq 'tabs whitespace-active-style)
+                           'face 'whitespace4r-hspace))))))
+    ,@(when (memq 'tabs whitespace4r-active-style)
         ;; Show TABs.
         `(("\\(\t\\)"
            (1 (let* ((pole ,(aref (cdr (assq 'tab-mark
@@ -110,7 +127,7 @@ Each element has the following form:
                 (put-text-property
                  (match-beginning 1)
                  (match-end 1)
-                 'display (propertize s 'face whitespace-tab)))))))))
+                 'display (propertize s 'face 'whitespace4r-tab)))))))
 
 (defun whitespace4r-diff-regions (r1 r2)
   "Return a list of regions that contained in R1 but not R2."
@@ -181,10 +198,6 @@ Each element has the following form:
 
 (defun whitespace4r--activate-mark-cb ()
   "Run after the mark becomes active."
-  (setq-local whitespace-active-style
-              (if (listp whitespace-style)
-                  whitespace-style
-                (list whitespace-style)))
   (setq whitespace4r-font-lock-keywords (whitespace4r-font-lock-keywords))
   (add-hook 'post-command-hook #'whitespace4r--update nil t))
 

@@ -4,7 +4,7 @@
 
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
-;; Version: 0.1.4
+;; Version: 0.1.5
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
 ;; Keywords: tools
@@ -55,6 +55,11 @@
   "Face used to visualize TAB."
   :group 'whitespace4r)
 
+(defface whitespace4r-trailing
+  '((t (:inherit whitespace-trailing)))
+  "Face used to visualize trailing blanks."
+  :group 'whitespace4r)
+
 (defcustom whitespace4r-display-mappings
   '(
     (space-mark      . [?·])
@@ -78,15 +83,22 @@ Each element has the following form:
                                                   (character :tag "Char"))))))
   :group 'whitespace4r)
 
-(defcustom whitespace4r-active-style '(spaces hspaces tabs)
-  "A list of active styles."
+(defcustom whitespace4r-style '(tabs spaces hspaces trailing)
+  "Specify which kind of blank is visualized.
+
+It's a list contianing some or all of the following values:
+
+   tabs			TABs are visualized via faces.
+   spaces		SPACEs are visualized via faces.
+   hspaces		HARD SPACEs are visualized via faces.
+   trailing		trailing blanks are visualized via faces."
   :type 'list
   :group 'whitespace4r)
 
 (defun whitespace4r-font-lock-keywords ()
   "Return font lock keywords."
   `(
-    ,@(when (memq 'spaces whitespace4r-active-style)
+    ,@(when (memq 'spaces whitespace4r-style)
         ;; Show SPACEs.
         `(("\\(\s\\)"
            (1 (put-text-property
@@ -97,7 +109,7 @@ Each element has the following form:
                            (aref (cdr (assq 'space-mark
                                             whitespace4r-display-mappings)) 0))
                          'face 'whitespace4r-space))))))
-    ,@(when (memq 'hspaces whitespace4r-active-style)
+    ,@(when (memq 'hspaces whitespace4r-style)
         ;; Show HARD SPACEs.
         `(("\\(\u00A0\\)"
            (1 (put-text-property
@@ -108,7 +120,7 @@ Each element has the following form:
                              (aref (cdr (assq 'hard-space-mark
                                               whitespace4r-display-mappings)) 0))
                            'face 'whitespace4r-hspace))))))
-    ,@(when (memq 'tabs whitespace4r-active-style)
+    ,@(when (memq 'tabs whitespace4r-style)
         ;; Show TABs.
         `(("\\(\t\\)"
            (1 (let* ((pole ,(aref (cdr (assq 'tab-mark
@@ -128,6 +140,19 @@ Each element has the following form:
                  (match-beginning 1)
                  (match-end 1)
                  'display (propertize s 'face 'whitespace4r-tab)))))))
+    ,@(when (memq 'trailing whitespace4r-style)
+        ;; Show trailing blanks.
+        `(("\\([\t\s\u00A0]+\\)$"
+           (1 (save-excursion
+                (while (< (match-beginning 1) (point))
+                  (put-text-property
+                   (1- (point))
+                   (point)
+                   'display
+                   (propertize (or (get-text-property (1- (point)) 'display)
+                                   (buffer-substring (1- (point)) (point)))
+                               'face 'whitespace4r-trailing))
+                  (backward-char)))))))))
 
 (defun whitespace4r-diff-regions (r1 r2)
   "Return a list of regions that contained in R1 but not R2."

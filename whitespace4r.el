@@ -4,7 +4,7 @@
 
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
-;; Version: 0.1.5
+;; Version: 0.1.6
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
 ;; Keywords: tools
@@ -190,10 +190,11 @@ It's a list contianing some or all of the following values:
         (font-lock-ensure beg end)
         (run-with-timer
          0 nil (lambda (buffer beg end)
-                 (with-current-buffer buffer
-                   (let ((undo-list-backup buffer-undo-list))
-                     (remove-text-properties beg (min end (point-max)) '(display))
-                     (setq buffer-undo-list undo-list-backup))))
+                 (when (buffer-live-p buffer)
+                   (with-current-buffer buffer
+                     (let ((undo-list-backup buffer-undo-list))
+                       (remove-text-properties beg (min end (point-max)) '(display nil))
+                       (setq buffer-undo-list undo-list-backup)))))
          (current-buffer) beg end)))))
 
 (defun whitespace4r--show (regions)

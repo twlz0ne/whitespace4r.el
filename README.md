@@ -15,3 +15,13 @@ Minor mode to show whitespace for selected region.
 ## Usage
 
 `M-x whitespace4r-mode`
+
+## Customization
+
+- **whitespace4r-style**
+
+  Specify which kind of blank is visualized.
+
+- **whitespace4r-display-mappings**
+
+  Specify an alist of mappings for displaying characters.

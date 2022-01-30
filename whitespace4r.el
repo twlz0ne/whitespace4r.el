@@ -4,7 +4,7 @@
 
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
-;; Version: 0.1.6
+;; Version: 0.1.7
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
 ;; Keywords: tools
@@ -179,23 +179,28 @@ It's a list contianing some or all of the following values:
       (when (and beg end)
         (cons beg end)))))
 
-(defun whitespace4r--hide (regions)
-  "Hide whitespace in REGIONS."
+(defun whitespace4r--hide (regions &optional immediately-p)
+  "Hide whitespace in REGIONS.
+
+If IMMEDIATELY-P is non-nil, remove teh text properties immediately, otherwise
+remove it in a timer."
   (font-lock-remove-keywords nil whitespace4r-font-lock-keywords)
-  (dolist (region regions)
-    (let ((beg (car region))
-          (end (cdr region)))
-      (when (< beg end)
-        (font-lock-flush beg end)
-        (font-lock-ensure beg end)
-        (run-with-timer
-         0 nil (lambda (buffer beg end)
-                 (when (buffer-live-p buffer)
-                   (with-current-buffer buffer
-                     (let ((undo-list-backup buffer-undo-list))
-                       (remove-text-properties beg (min end (point-max)) '(display nil))
-                       (setq buffer-undo-list undo-list-backup)))))
-         (current-buffer) beg end)))))
+  (let ((function
+          (lambda (buffer beg end)
+            (when (buffer-live-p buffer)
+              (with-current-buffer buffer
+                (let ((undo-list-backup buffer-undo-list))
+                  (remove-text-properties beg (min end (point-max)) '(display nil))
+                  (setq buffer-undo-list undo-list-backup)))))))
+    (dolist (region regions)
+      (let ((beg (car region))
+            (end (cdr region)))
+        (when (< beg end)
+          (font-lock-flush beg end)
+          (font-lock-ensure beg end)
+          (if immediately-p
+              (funcall function (current-buffer) beg end)
+            (run-with-timer 0 nil function (current-buffer) beg end)))))))
 
 (defun whitespace4r--show (regions)
   "Show whitespace in REGIONS."
@@ -235,6 +240,11 @@ It's a list contianing some or all of the following values:
       (whitespace4r--hide (list last-region))))
   (whitespace4r--mark-region nil))
 
+(defun whitespacer4r--advice-indent-region (beg end &optional _)
+  "Advice before `indent-region' to remove text properties between BEG to END."
+  (when (region-active-p)
+    (whitespace4r--hide (list (cons beg end)) t)))
+
 (defun whitespace4r--after-change-function (beg end len)
   "Remove text properties from BEG to END.
 
@@ -256,11 +266,13 @@ This function must be called from `after-change-functions'."
     (add-hook 'activate-mark-hook #'whitespace4r--activate-mark-cb  100 t)
     (add-hook 'deactivate-mark-hook #'whitespace4r--deactivate-mark-cb 100 t)
     (add-hook 'after-change-functions #'whitespace4r--after-change-function nil t)
+    (advice-add 'indent-region :before #'whitespacer4r--advice-indent-region)
     (whitespace4r--activate-mark-cb))
    (t
     (remove-hook 'activate-mark-hook #'whitespace4r--activate-mark-cb t)
     (remove-hook 'deactivate-mark-hook #'whitespace4r--deactivate-mark-cb t)
     (remove-hook 'after-change-functions #'whitespace4r--after-change-function t)
+    (advice-remove 'indent-region #'whitespacer4r--advice-indent-region)
     (whitespace4r--deactivate-mark-cb))))
 
 (provide 'whitespace4r)

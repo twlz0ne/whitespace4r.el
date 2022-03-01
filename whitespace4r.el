@@ -4,7 +4,7 @@
 
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
-;; Version: 0.1.8
+;; Version: 0.1.9
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
 ;; Keywords: tools
@@ -218,6 +218,13 @@ remove it in a timer."
       (let ((font-lock-extend-region-functions
              (remove 'font-lock-extend-region-wholelines
                      font-lock-extend-region-functions))
+            (c-before-context-fontification-functions
+             ;; FIXME: Avoid `c-font-lock-fontify-region' to expand the region
+             ;; from (beg end) to (bol eol), that causes highlighting in the
+             ;; wrong place.  Not sure what side effects this fix will have.
+             (if (derived-mode-p 'c-mode)
+                 (remove 'c-context-expand-fl-region
+                         c-before-context-fontification-functions)))
             (last-region (whitespace4r--marked-region))
             (r (if (eq (bound-and-true-p evil-state) 'visual)
                    (cons (nth 0 (evil-visual-range))

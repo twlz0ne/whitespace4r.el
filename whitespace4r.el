@@ -4,7 +4,7 @@
 
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
-;; Version: 0.1.9
+;; Version: 0.1.10
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
 ;; Keywords: tools
@@ -191,9 +191,12 @@ remove it in a timer."
               (with-current-buffer buffer
                 (let ((min-end (min end (point-max))))
                   (when (< beg min-end)
-                    (let ((undo-list-backup buffer-undo-list))
-                      (remove-text-properties beg min-end '(display nil))
-                      (setq buffer-undo-list undo-list-backup)))))))))
+                    (let ((undo-list-backup buffer-undo-list)
+                          (modified (buffer-modified-p)))
+                      (unwind-protect
+                          (remove-text-properties beg min-end '(display nil))
+                        (set-buffer-modified-p modified)
+                        (setq buffer-undo-list undo-list-backup))))))))))
     (dolist (region regions)
       (let ((beg (car region))
             (end (cdr region)))

@@ -4,7 +4,7 @@
 
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
-;; Version: 0.1.10
+;; Version: 0.1.11
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
 ;; Keywords: tools
@@ -228,6 +228,8 @@ remove it in a timer."
              (if (derived-mode-p 'c-mode)
                  (remove 'c-context-expand-fl-region
                          c-before-context-fontification-functions)))
+            ;; FIXME: Extending region will causes wrong highlight.
+            (font-lock-extend-region-functions nil)
             (last-region (whitespace4r--marked-region))
             (r (if (eq (bound-and-true-p evil-state) 'visual)
                    (cons (nth 0 (evil-visual-range))

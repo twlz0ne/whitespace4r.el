@@ -4,7 +4,7 @@
 
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
-;; Version: 0.1.11
+;; Version: 0.1.12
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
 ;; Keywords: tools
@@ -50,6 +50,11 @@
   "Face used to visualize HSPACE."
   :group 'whitespace4r)
 
+(defface whitespace4r-zwspace
+  '((t (:inherit whitespace-hspace)))
+  "Face used to visualize ZWSPACE."
+  :group 'whitespace4r)
+
 (defface whitespace4r-tab
   '((t (:inherit whitespace-tab)))
   "Face used to visualize TAB."
@@ -62,9 +67,10 @@
 
 (defcustom whitespace4r-display-mappings
   '(
-    (space-mark      . [?·])
-    (hard-space-mark . [?¤])
-    (tab-mark        . [?\s ?»]))
+    (space-mark            . [?·])
+    (hard-space-mark       . [?¤])
+    (zero-width-space-mark . [?┆])
+    (tab-mark              . [?\s ?»]))
   "Specify an alist of mappings for displaying characters.
 
 Each element has the following form:
@@ -75,7 +81,8 @@ Each element has the following form:
                 (choice :tag "Char Kind"
                         (const :tag "Tab" tab-mark)
                         (const :tag "Space" space-mark)
-                        (const :tag "HardSpace" hard-space-mark))
+                        (const :tag "HardSpace" hard-space-mark)
+                        (const :tag "ZeroWidthSpace" zero-width-space-mark))
                 (repeat :inline t :tag "Vector List"
                                   (vector :tag ""
                                           (repeat :inline t
@@ -83,7 +90,7 @@ Each element has the following form:
                                                   (character :tag "Char"))))))
   :group 'whitespace4r)
 
-(defcustom whitespace4r-style '(tabs spaces hspaces trailing)
+(defcustom whitespace4r-style '(tabs spaces hspaces zwspaces trailing)
   "Specify which kind of blank is visualized.
 
 It's a list contianing some or all of the following values:
@@ -91,6 +98,7 @@ It's a list contianing some or all of the following values:
    tabs			TABs are visualized via faces.
    spaces		SPACEs are visualized via faces.
    hspaces		HARD SPACEs are visualized via faces.
+   zwspaces		ZERO WIDTH SPACEs are visualized via faces.
    trailing		trailing blanks are visualized via faces."
   :type 'list
   :group 'whitespace4r)
@@ -120,6 +128,17 @@ It's a list contianing some or all of the following values:
                              (aref (cdr (assq 'hard-space-mark
                                               whitespace4r-display-mappings)) 0))
                            'face 'whitespace4r-hspace))))))
+    ,@(when (memq 'zwspaces whitespace4r-style)
+        ;; Show ZERO-WIDTH SPACEs.
+        `(("\\(\u200B\\)"
+           (1 (put-text-property
+               (match-beginning 1)
+               (match-end 1)
+               'display
+               (propertize ,(char-to-string
+                             (aref (cdr (assq 'zero-width-space-mark
+                                              whitespace4r-display-mappings)) 0))
+                           'face 'whitespace4r-zwspace))))))
     ,@(when (memq 'tabs whitespace4r-style)
         ;; Show TABs.
         `(("\\(\t\\)"
@@ -142,7 +161,7 @@ It's a list contianing some or all of the following values:
                  'display (propertize s 'face 'whitespace4r-tab)))))))
     ,@(when (memq 'trailing whitespace4r-style)
         ;; Show trailing blanks.
-        `(("\\([\t\s\u00A0]+\\)$"
+        `(("\\([\t\s\u00A0\u200B]+\\)$"
            (1 (save-excursion
                 (while (< (match-beginning 1) (point))
                   (put-text-property

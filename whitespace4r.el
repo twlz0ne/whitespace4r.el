@@ -198,30 +198,63 @@ It's a list contianing some or all of the following values:
       (when (and beg end)
         (cons beg end)))))
 
+;; Borrowed from `undo-fu'.
+(defmacro whitespace4r--with-advice (fn-orig where fn-advice &rest body)
+  "Execute BODY with advice added.
+
+WHERE using FN-ADVICE temporarily added to FN-ORIG."
+  (declare (indent 1))
+  `(let ((fn-advice-var ,fn-advice))
+     (unwind-protect
+         (progn
+           (advice-add ,fn-orig ,where fn-advice-var)
+           ,@body)
+       (advice-remove ,fn-orig fn-advice-var))))
+
+(defun whitspace4r--advicde-font-lock-fontify-keywords-region (&rest args)
+  "Advice around original function with ARGS."
+  ;; FIXIME: inhibit the `args-out-of-range' error when deleting a large chunks
+  ;; of text in `markdown-mode' via `evil-substitute'.
+  ;; Debugger entered--Lisp error: (args-out-of-range 1505 2156)
+  ;;   text-property-not-all(1505 2156 face nil)
+  ;;   #f(compiled-function (highlight) "Apply HIGHLIGHT following a match.\nHI
+  ;;   font-lock-fontify-keywords-region(264 2026 nil)
+  ;;   font-lock-default-fontify-region(1529 1530 nil)
+  ;;   font-lock-fontify-region(1529 1530)
+  ;;   #f(compiled-function (fun) #<bytecode 0x19d087edb500adfd>)(font-lock-fon
+  ;;   run-hook-wrapped(#f(compiled-function (fun) #<bytecode 0x19d087edb500adf
+  ;;   jit-lock--run-functions(1529 1530)
+  ;;   jit-lock-fontify-now(1529 1530)
+  ;;   font-lock-ensure(1529 1530)
+  (ignore-error 'args-out-of-range (apply args)))
+
+(defun whitespace4r--unfontify-1 (buffer beg end)
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (let ((min-end (min end (point-max))))
+        (when (< beg min-end)
+          (let ((undo-list-backup buffer-undo-list)
+                (modified (buffer-modified-p)))
+            (unwind-protect
+                (remove-text-properties beg min-end '(display nil))
+              (set-buffer-modified-p modified)
+              (setq buffer-undo-list undo-list-backup))))))))
+
 (defun whitespace4r--hide (regions &optional immediately-p)
   "Hide whitespace in REGIONS.
 
 If IMMEDIATELY-P is non-nil, remove teh text properties immediately, otherwise
 remove it in a timer."
   (font-lock-remove-keywords nil whitespace4r-font-lock-keywords)
-  (let ((function
-          (lambda (buffer beg end)
-            (when (buffer-live-p buffer)
-              (with-current-buffer buffer
-                (let ((min-end (min end (point-max))))
-                  (when (< beg min-end)
-                    (let ((undo-list-backup buffer-undo-list)
-                          (modified (buffer-modified-p)))
-                      (unwind-protect
-                          (remove-text-properties beg min-end '(display nil))
-                        (set-buffer-modified-p modified)
-                        (setq buffer-undo-list undo-list-backup))))))))))
+  (let ((function #'whitespace4r--unfontify-1))
     (dolist (region regions)
       (let ((beg (car region))
             (end (cdr region)))
         (when (< beg end)
           (font-lock-flush beg end)
-          (font-lock-ensure beg end)
+          (whitespace4r--with-advice 'font-lock-fontify-keywords-region
+            :around 'whitspace4r--advicde-font-lock-fontify-keywords-region
+            (font-lock-ensure beg end))
           (if immediately-p
               (funcall function (current-buffer) beg end)
             (run-with-timer 0 nil function (current-buffer) beg end)))))))

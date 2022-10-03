@@ -5,6 +5,8 @@
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
 ;; Version: 0.1.12
+;; Last-Updated: 2022-10-03 17:54:27 +0800
+;;           By: Gong Qijian
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
 ;; Keywords: tools
@@ -231,7 +233,8 @@ WHERE using FN-ADVICE temporarily added to FN-ORIG."
 (defun whitespace4r--unfontify-1 (buffer beg end)
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
-      (let ((min-end (min end (point-max))))
+      (let ((min-end (min end (point-max)))
+            (inhibit-read-only t))
         (when (< beg min-end)
           (let ((undo-list-backup buffer-undo-list)
                 (modified (buffer-modified-p)))

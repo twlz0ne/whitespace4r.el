@@ -5,7 +5,7 @@
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
 ;; Version: 0.1.12
-;; Last-Updated: 2022-10-03 17:54:27 +0800
+;; Last-Updated: 2022-10-27 21:17:28 +0800
 ;;           By: Gong Qijian
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
@@ -239,7 +239,9 @@ WHERE using FN-ADVICE temporarily added to FN-ORIG."
           (let ((undo-list-backup buffer-undo-list)
                 (modified (buffer-modified-p)))
             (unwind-protect
-                (remove-text-properties beg min-end '(display nil))
+                (save-restriction
+                  (widen)
+                  (remove-text-properties beg min-end '(display nil)))
               (set-buffer-modified-p modified)
               (setq buffer-undo-list undo-list-backup))))))))
 

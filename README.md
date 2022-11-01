@@ -2,7 +2,7 @@
 
 Minor mode to show whitespace for selected region.
 
-![](./screenshot.png)
+![](./screenshot1.png)
 
 ## Installation
 
@@ -25,3 +25,17 @@ Minor mode to show whitespace for selected region.
 - **whitespace4r-display-mappings**
 
   Specify an alist of mappings for displaying characters.
+
+It's a bit annoying to show all the spaces, following is an example of a low interference configuration:
+
+```elisp
+(progn
+  (setq show-trailing-whitespace nil)
+  (setq whitespace4r-style '(tabs hspaces zwspaces trailing))
+  (setq whitespace4r-display-mappings `((space-mark      . [?·])
+                                        (hard-space-mark . [?¤])
+                                        (zero-width-space-mark . [?┆])
+                                        (tab-mark        . [?— ?⟶]))))
+```
+
+![](./screenshot2.png)

@@ -5,7 +5,7 @@
 ;; Author: Gong Qijian <gongqijian@gmail.com>
 ;; Created: 2022/01/12
 ;; Version: 0.1.12
-;; Last-Updated: 2022-10-27 21:17:28 +0800
+;; Last-Updated: 2022-12-24 12:19:41 +0800
 ;;           By: Gong Qijian
 ;; Package-Requires: ((emacs "25.1"))
 ;; URL: https://github.com/twlz0ne/whitespace4r
@@ -34,6 +34,7 @@
 
 (require 'whitespace)
 
+(defvar c-before-context-fontification-functions)
 (declare-function evil-visual-range "evil-states")
 
 (defvar-local whitespace4r--region-mark nil
